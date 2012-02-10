@@ -1,0 +1,5 @@
+name = "Drux"
+description = "Additional drush commands, to be merged back into git core or git_extras at some day. Mostly for dealing with module dependencies."
+dependencies[] = xautoload
+core = 7.x
+php = 5.2
