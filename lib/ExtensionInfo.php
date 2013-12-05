@@ -8,6 +8,9 @@
  */
 class drux_ExtensionInfo {
 
+  /**
+   * @var stdClass[]
+   */
   protected $extensionInfo;
 
   function __construct() {
@@ -18,10 +21,21 @@ class drux_ExtensionInfo {
     $this->extensionInfo = drush_get_extensions();
   }
 
-  function enabledKeys() {
+  /**
+   * @param bool $include_profiles
+   *   If TRUE, install profiles will be included in the listing.
+   *   If FALSE, install profiles will be excluded.
+   *
+   * @return string[]
+   *   Enabled modules.
+   */
+  function enabledKeys($include_profiles = FALSE) {
     $result = array();
     foreach ($this->extensionInfo as $key => $info) {
-      if ($info->status) {
+      if (1
+        && !empty($info->status)
+        && ($include_profiles || '.profile' !== substr($info->filename, -8))
+      ) {
         $result[] = $key;
       }
     }
@@ -46,16 +60,39 @@ class drux_ExtensionInfo {
     return $rows;
   }
 
-  function drupalRequiredModules() {
+  /**
+   * Modules where the module info says they are required.
+   * This is usually only the required core modules, and the active install
+   * profile.
+   *
+   * @param bool $include_profiles
+   *   If TRUE, install profiles will be included in the listing.
+   *   If FALSE, install profiles will be excluded.
+   *
+   * @return string[]
+   *   Required modules, such as 'system'.
+   */
+  function drupalRequiredModules($include_profiles = FALSE) {
     $result = array();
     foreach ($this->extensionInfo as $module => $info) {
-      if (!empty($info->info['required'])) {
+      if (1
+        && !empty($info->info['required'])
+        && ($include_profiles || '.profile' !== substr($info->filename, -8))
+      ) {
         $result[$module] = $module;
       }
     }
     return $result;
   }
 
+  /**
+   * Get the dependencies of a given module.
+   *
+   * @param string $module
+   *   The module name to start from.
+   * @return string[]|NULL
+   *   An array of module names, or NULL if we don't have that information.
+   */
   function moduleDependencies($module) {
     if (!isset($this->extensionInfo[$module])) {
       return NULL;
@@ -64,8 +101,56 @@ class drux_ExtensionInfo {
       return array();
     }
     else {
+      // return $this->extensionInfo[$module]->info['dependencies'];
       return array_keys($this->extensionInfo[$module]->requires);
     }
+  }
+
+  /**
+   * Get the dependencies of a given module.
+   *
+   * @param string $module
+   *   The module name to start from.
+   * @return string[]|NULL
+   *   An array of module names, or NULL if we don't have that information.
+   */
+  function moduleDirectDependencies($module) {
+    if (!isset($this->extensionInfo[$module])) {
+      return NULL;
+    }
+    $info = $this->extensionInfo[$module];
+    if (!isset($info->requires)) {
+      return array();
+    }
+    if (!is_array($info->info['dependencies'])) {
+      return array();
+    }
+    $deps = array();
+    foreach ($info->info['dependencies'] as $dependency) {
+      $dependency_data = drupal_parse_dependency($dependency);
+      $deps[] = $dependency_data;
+    }
+    return $deps;
+  }
+
+  /**
+   * Check if the module required in $dependency_data is enabled and has the
+   * correct version.
+   *
+   * @param array $dependency_data
+   *
+   * @return bool
+   */
+  function dependencySatisfied($dependency_data) {
+    $name = $dependency_data['name'];
+    if (!isset($this->extensionInfo[$name])) {
+      return FALSE;
+    }
+    $info = $this->extensionInfo[$name];
+    if (empty($info->status)) {
+      return FALSE;
+    }
+    return TRUE;
   }
 
   function moduleRequiredBy($module) {
@@ -113,7 +198,7 @@ class drux_ExtensionInfo {
 
   function enableExtensions($modules) {
     drush_module_enable($modules);
-    drush_system_modules_form_submit(pm_module_list());
+    // drush_system_modules_form_submit(pm_module_list());
     $this->refresh();
     $result = array(array(), array());
     foreach ($modules as $module) {

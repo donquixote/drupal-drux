@@ -3,20 +3,36 @@
 
 class drux_DependencyTracker {
 
+  /**
+   * @var drux_ExtensionInfo
+   */
   protected $extinfo;
+
   protected $en = array();
   protected $dl = array();
   protected $visited = array();
   protected $obsolete = array();
 
+  /**
+   * @param drux_ExtensionInfo $extensionInfo
+   */
   function __construct($extensionInfo) {
     $this->extinfo = $extensionInfo;
     $enabled = $extensionInfo->enabledKeys();
     $this->obsolete = array_combine($enabled, $enabled);
-    $this->requireModules($extensionInfo->drupalRequiredModules());
+    $this->requireModules($extensionInfo->drupalRequiredModules(), '(drupal core)');
   }
 
-  function requireModules($modules, $required_by = '(drupal core)') {
+  /**
+   * Require modules and recursively require their dependencies.
+   * If a module is not downloaded yet, the dependencies cannot be determined,
+   * but the module will be added to the $this->dl list.
+   *
+   * @param string[] $modules
+   *   Module names of modules to require.
+   * @param string $required_by
+   */
+  function requireModules($modules, $required_by) {
     foreach ($modules as $module) {
       if (!isset($this->visited[$module])) {
         $this->visited[$module] = $module;
@@ -35,6 +51,10 @@ class drux_DependencyTracker {
 
   function nModulesToEnable() {
     return count($this->en);
+  }
+
+  function modulesToEnable() {
+    return $this->en;
   }
 
   function obsoleteModules() {
@@ -159,9 +179,13 @@ class drux_DependencyTracker {
     $this->dl = array();
     $this->en = array();
     $this->visited = array();
-    $this->requireModules($missing);
+    $this->requireModules($missing, '(missing)');
   }
 
+  /**
+   * @param $module
+   * @param $required_by
+   */
   protected function _requireModule($module, $required_by) {
     $status = $this->extinfo->moduleStatus($module);
     if (!isset($status)) {
