@@ -191,7 +191,7 @@ class drux_ExtensionInfo {
   }
 
   function downloadProjects($projects) {
-    $result = drush_invoke_process_args('pm-download', array_keys($projects), array('y' => TRUE));
+    $result = drush_invoke_process('@self','pm-download', $projects, array('y' => TRUE));
     $this->refresh();
     return TRUE;
   }
