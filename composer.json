@@ -1,0 +1,24 @@
+{
+    "name": "donquixote/drupal-drux",
+    "description": "Dependency manager for Drush",
+    "authors": [
+        {
+            "name": "donquixote",
+            "email": "andreas@dqxtech.net"
+        }
+    ],
+    "config": {
+        "sort-packages": true
+    },
+    "conflicts": {
+        "drupal/core": "8.*",
+        "drush/drush": "9.*"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "require": {
+        "drush/drush": "^7.0 || ^8.0",
+        "php": "^5.2 || ^7.1"
+    },
+    "type": "drupal-drush"
+}
